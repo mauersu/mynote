@@ -1,4 +1,5 @@
 #项目中出现的乱码问题的解决与字符编码分析
+
 ##1.项目中出现的乱码问题的解决
 ###出现情景
 &emsp;&emsp;项目service层与controller层由dubbo进行耦合，其中一套部署在linux服务器上，由于本地分支测试需要，我将windows本机service层注册到了同一zookeeper上，进行自己模块测试，导致项目组其他成员测试机测试时，部分请求落到了我的机器上，其中登录模块有存储用户信息到redis，逻辑在service层，其中存储时请求走的是windows主机，使用时使用的是linux主机
@@ -107,3 +108,46 @@
 *  GBK&emsp;&emsp;&emsp;&emsp;一个字节&emsp;&emsp;两个字节
 
 &emsp;&emsp;显然明智之选当然是GBK啦，首先GBK支持中文最好，其次GBK对于中文还有ASCII码字符编码最省，对于中文环境的网络传输来说，GBK当之无愧了。
+
+###测试代码
+
+
+```
+import java.io.UnsupportedEncodingException;
+public class Test {
+public static void main(String args[]) throws UnsupportedEncodingException {
+byte[] utf8 = "A".getBytes("UTF-8");
+byte[] utf16 = "A".getBytes("UTF-16");
+byte[] gbk = "A".getBytes("GBK");
+String aa = new String (utf8, "utf-8");
+System.out.println(toHexByte(utf8));
+System.out.println(toHexByte(utf16));
+System.out.println(toHexByte(gbk));
+char temp = (char) (0x0102);
+}
+public static final String toHexByte(byte[] b) {
+String str = "";
+for(int i=0;i<b.length; i++) {
+str += toHexByte(b[i]);
+}
+return str;
+}
+public static final String toHexByte(byte b) {
+String str = "" + "0123456789ABCDEF".charAt(0xf & b>>4) + "0123456789ABCDEF".charAt(0xf & b>>0);
+return str;
+}
+public static String toHexBytes(byte[] b) {
+StringBuffer sb = new StringBuffer(b.length);
+String str ;
+for(int i=0;i<b.length;i++) {
+int temp = b[i];
+str = Integer.toHexString(temp);
+if(str.length()<2)
+sb.append(0);
+sb.append(str.toUpperCase());
+}
+return sb.toString();
+}
+}
+```
+
