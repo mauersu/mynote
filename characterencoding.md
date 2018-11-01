@@ -1,17 +1,17 @@
-#项目中出现的乱码问题的解决与字符编码分析
+# 项目中出现的乱码问题的解决与字符编码分析
 
-##1.项目中出现的乱码问题的解决
-###出现情景
+## 1.项目中出现的乱码问题的解决
+### 出现情景
 &emsp;&emsp;项目service层与controller层由dubbo进行耦合，其中一套部署在linux服务器上，由于本地分支测试需要，我将windows本机service层注册到了同一zookeeper上，进行自己模块测试，导致项目组其他成员测试机测试时，部分请求落到了我的机器上，其中登录模块有存储用户信息到redis，逻辑在service层，其中存储时请求走的是windows主机，使用时使用的是linux主机
-###问题分析
+### 问题分析
 &emsp;&emsp;由于windows默认编码是gbk，而linux默认编码是utf-8，所以导致存入redis的为windows的gbk编码的byte数组，而取出时又用linux的utf-8解码，导致出现乱码。
-###问题解决
+### 问题解决
 &emsp;&emsp;终究其原因，是因为在字符转换为byte数组时，未指明编码格式使用系统默认编码所致，将转化时都指明为utf-8，问题解决
-##2.字符编码分析
+## 2.字符编码分析
 
 > Unicode、Unicode big endian和UTF-8编码的txt文件的开头会多出几个字节，分别是FF、FE（Unicode）,FE、F  （Unicode big endian）,EF、BB、BF（UTF-8）
 
-###big endian和little endian
+### big endian和little endian
 
 &emsp;&emsp;big endian和little endian是CPU处理多字节数的不同方式。例如“汉”字的Unicode编码是6C49。那么写到文件里时，究竟是将6C写在前面，还是将49写在前面？如果将6C写在前面，就是big endian。还是将49写在前面，就是little endian。
 
@@ -19,7 +19,7 @@
 
 &emsp;&emsp;我们一般将endian翻译成“字节序”，将big endian和little endian称作“大尾”和“小尾”。
 
-###字符编码、内码，顺带介绍汉字编码
+### 字符编码、内码，顺带介绍汉字编码
 
 &emsp;&emsp;字符必须编码后才能被计算机处理。计算机使用的缺省编码方式就是计算机的内码。早期的计算机使用7位的ASCII编码，为了处理汉字，程序员设计了用于简体中文的GB2312和用于繁体中文的big5。
 
@@ -40,7 +40,7 @@
 &emsp;&emsp;GB2312的两个字节的最高位都是1。但符合这个条件的码位只有128*128=16384个。所以GBK和GB18030的低字节最高位都可能不是1。不过这不影响DBCS字符流的解析：在读取DBCS字符流时，只要遇到高位为1的字节，就可以将下两个字节作为一个双字节编码，而不用管低字节的高位是什么。
 
 
-###Unicode、UCS和UTF
+### Unicode、UCS和UTF
 
 &emsp;&emsp;前面提到从ASCII、GB2312、GBK到GB18030的编码方法是向下兼容的。而Unicode只与ASCII兼容（更准确地说，是与ISO-8859-1兼容），与GB码不兼容。例如“汉”字的Unicode编码是6C49，而GB码是BABA。
 
@@ -57,7 +57,7 @@
 &emsp;&emsp;IETF的RFC2781和RFC3629以RFC的一贯风格，清晰、明快又不失严谨地描述了UTF-16和UTF-8的编码方法。我总是记不得IETF是Internet Engineering Task Force的缩写。但IETF负责维护的RFC是Internet上一切规范的基础。
 
 
-###UCS-2、UCS-4、BMP
+### UCS-2、UCS-4、BMP
 
 &emsp;&emsp;UCS有两种格式：UCS-2和UCS-4。顾名思义，UCS-2就是用两个字节编码，UCS-4就是用4个字节（实际上只用了31位，最高位必须为0）编码。下面让我们做一些简单的数学游戏：
 
@@ -70,7 +70,7 @@
 &emsp;&emsp;将UCS-4的BMP去掉前面的两个零字节就得到了UCS-2。在UCS-2的两个字节前加上两个零字节，就得到了UCS-4的BMP。而目前的UCS-4规范中还没有任何字符被分配在BMP之外。
 
 
-###UTF编码
+### UTF编码
 
 &emsp;&emsp;UTF-8就是以8位为单元对UCS进行编码。从UCS-2到UTF-8的编码方式如下：
 
@@ -86,7 +86,7 @@
 &emsp;&emsp;UTF-16以16位为单元对UCS进行编码。对于小于0x10000的UCS码，UTF-16编码就等于UCS码对应的16位无符号整数。对于不小于0x10000的UCS码，定义了一个算法。不过由于实际使用的UCS2，或者UCS4的BMP必然小于0x10000，所以就目前而言，可以认为UTF-16和UCS-2基本相同。但UCS-2只是一个编码方案，UTF-16却要用于实际的传输，所以就不得不考虑字节序的问题。
 
 
-###UTF的字节序和BOM
+### UTF的字节序和BOM
 
 &emsp;&emsp;UTF-8以字节为编码单元，没有字节序的问题。UTF-16以两个字节为编码单元，在解释一个UTF-16文本前，首先要弄清楚每个编码单元的字节序。例如收到一个“奎”的Unicode编码是594E，“乙”的Unicode编码是4E59。如果我们收到UTF-16字节流“594E”，那么这是“奎”还是“乙”？
 
@@ -109,7 +109,7 @@
 
 &emsp;&emsp;显然明智之选当然是GBK啦，首先GBK支持中文最好，其次GBK对于中文还有ASCII码字符编码最省，对于中文环境的网络传输来说，GBK当之无愧了。
 
-###测试代码
+### 测试代码
 
 
 ```
